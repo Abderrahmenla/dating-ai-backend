@@ -6,8 +6,8 @@ const https = require('https')
 const fs = require('fs')
 const cors = require('cors')
 const app = express()
-const httpPort = 3000 // For HTTP (optional redirect to HTTPS)
-const httpsPort = 443 // For HTTPS
+const httpPort = 3001 // For HTTP (optional redirect to HTTPS)
+const httpsPort = 3000 // For HTTPS
 
 // Middleware
 app.use(cors())
