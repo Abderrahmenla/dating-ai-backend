@@ -10,7 +10,17 @@ const httpPort = 3001 // For HTTP (optional redirect to HTTPS)
 const httpsPort = 3000 // For HTTPS
 
 // Middleware
-app.use(cors())
+app.use(
+  cors({
+    origin: [
+      'http://localhost',
+      'https://localhost',
+      'https://sb1pus4tc-4fzn--5173--d3acb9e1.local-corp.webcontainer.io/',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+)
 app.use(bodyParser.json())
 
 // Initialize Replicate
