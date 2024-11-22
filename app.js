@@ -2,9 +2,12 @@ require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
 const Replicate = require('replicate')
+const https = require('https')
+const fs = require('fs')
 const cors = require('cors')
 const app = express()
-const port = 3000
+const httpPort = 3000 // For HTTP (optional redirect to HTTPS)
+const httpsPort = 443 // For HTTPS
 
 // Middleware
 app.use(cors())
@@ -38,7 +41,26 @@ app.post('/train', async (req, res) => {
   }
 })
 
-// Start the server
-app.listen(port, () => {
-  console.log(`Server is running on http://localhost:${port}`)
+// Redirect HTTP to HTTPS
+const http = require('http')
+http
+  .createServer((req, res) => {
+    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
+    res.end()
+  })
+  .listen(httpPort, () => {
+    console.log(
+      `HTTP Server is running on http://localhost:${httpPort} and redirecting to HTTPS`
+    )
+  })
+
+// Load self-signed certificate
+const sslOptions = {
+  key: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.key'), // Path to your self-signed key
+  cert: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.crt'), // Path to your self-signed cert
+}
+
+// Start the HTTPS server
+https.createServer(sslOptions, app).listen(httpsPort, () => {
+  console.log(`HTTPS Server is running on https://localhost:${httpsPort}`)
 })
