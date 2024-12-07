@@ -47,13 +47,12 @@ app.post('/train', async (req, res) => {
 
 app.post('/create-checkout-session', async (req, res) => {
   try {
-    const { userId } = req.body
+    const { userId, redirectURL } = req.body
 
     if (!userId) {
       return res.status(400).json({ error: 'Missing userId' })
     }
 
-    // Check if user already has an active subscription
     if (usersSubscriptions[userId] && usersSubscriptions[userId].active) {
       return res.status(200).json({
         status: 'active',
@@ -61,7 +60,6 @@ app.post('/create-checkout-session', async (req, res) => {
       })
     }
 
-    // Create a Stripe checkout session for a new subscription
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -82,8 +80,8 @@ app.post('/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.REACT_PUBLIC_BASE_URL}/en/photo-unlock?session_id={CHECKOUT_SESSION_ID}`, // Redirect back to app
-      cancel_url: `${process.env.REACT_PUBLIC_BASE_URL}/cancel?session_id={CHECKOUT_SESSION_ID}`, // Redirect back to app
+      success_url: `${process.env.REACT_PUBLIC_BASE_URL}${redirectURL}?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.REACT_PUBLIC_BASE_URL}/cancel?session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
         userId, // Attach userId to metadata for webhook processing
       },
