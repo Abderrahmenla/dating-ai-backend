@@ -82,8 +82,11 @@ app.post('/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.REACT_PUBLIC_BASE_URL}/en/photo-unlock?session_id={CHECKOUT_SESSION_ID}`, // No redirection
-      cancel_url: `${process.env.REACT_PUBLIC_BASE_URL}/cancel?session_id={CHECKOUT_SESSION_ID}`, // No redirection
+      success_url: `${process.env.REACT_PUBLIC_BASE_URL}/en/photo-unlock?session_id={CHECKOUT_SESSION_ID}`, // Redirect back to app
+      cancel_url: `${process.env.REACT_PUBLIC_BASE_URL}/cancel?session_id={CHECKOUT_SESSION_ID}`, // Redirect back to app
+      metadata: {
+        userId, // Attach userId to metadata for webhook processing
+      },
     })
 
     res.status(200).json({
