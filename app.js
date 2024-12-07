@@ -6,11 +6,11 @@ const https = require('https')
 const fs = require('fs')
 const cors = require('cors')
 const Stripe = require('stripe')
-
+const usersSubscriptions = {}
 const app = express()
 const httpPort = 3001
 const httpsPort = 3000
-
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 app.use(cors())
 app.use(bodyParser.json())
 
@@ -47,6 +47,21 @@ app.post('/train', async (req, res) => {
 
 app.post('/create-checkout-session', async (req, res) => {
   try {
+    const { userId } = req.body
+
+    if (!userId) {
+      return res.status(400).json({ error: 'Missing userId' })
+    }
+
+    // Check if user already has an active subscription
+    if (usersSubscriptions[userId] && usersSubscriptions[userId].active) {
+      return res.status(200).json({
+        status: 'active',
+        message: 'User already has an active subscription',
+      })
+    }
+
+    // Create a Stripe checkout session for a new subscription
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
       line_items: [
@@ -67,20 +82,81 @@ app.post('/create-checkout-session', async (req, res) => {
         },
       ],
       mode: 'subscription',
-      success_url: `${process.env.REACT_PUBLIC_BASE_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.REACT_PUBLIC_BASE_URL}/cancel`,
+      success_url: `${process.env.REACT_PUBLIC_BASE_URL}/en/photo-unlock?session_id={CHECKOUT_SESSION_ID}`, // No redirection
+      cancel_url: `${process.env.REACT_PUBLIC_BASE_URL}/cancel?session_id={CHECKOUT_SESSION_ID}`, // No redirection
     })
 
-    res.status(200).json({ sessionId: session.id })
+    res.status(200).json({
+      status: 'pending',
+      sessionId: session.id,
+      message: 'Subscription session created. Redirect to Stripe Checkout.',
+    })
   } catch (error) {
     console.error('Error creating checkout session:', error.message)
     res.status(500).json({
+      status: 'error',
       error: 'Failed to create checkout session',
       details: error.message,
     })
   }
 })
 
+app.post('/webhook', express.raw({ type: 'application/json' }), (req, res) => {
+  const sig = req.headers['stripe-signature']
+
+  let event
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret)
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message)
+    return res.status(400).send(`Webhook Error: ${err.message}`)
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object
+
+    const userId = session.metadata.userId
+
+    usersSubscriptions[userId] = {
+      active: true,
+      subscriptionId: session.subscription,
+    }
+
+    console.log(`Subscription for user ${userId} is now active.`)
+  }
+
+  res.status(200).send('Webhook received')
+})
+
+app.get('/verify-subscription', async (req, res) => {
+  try {
+    const { session_id, userId } = req.query
+
+    if (!session_id || !userId) {
+      return res.status(400).json({ error: 'Missing session_id or userId' })
+    }
+
+    const session = await stripe.checkout.sessions.retrieve(session_id)
+
+    if (session.payment_status === 'paid') {
+      usersSubscriptions[userId] = {
+        active: true,
+        subscriptionId: session.subscription,
+      }
+
+      return res.status(200).json({ message: 'Subscription verified' })
+    } else {
+      return res.status(400).json({ error: 'Subscription not paid' })
+    }
+  } catch (error) {
+    console.error('Error verifying subscription:', error.message)
+    res.status(500).json({
+      error: 'Failed to verify subscription',
+      details: error.message,
+    })
+  }
+})
 const http = require('http')
 http
   .createServer((req, res) => {
