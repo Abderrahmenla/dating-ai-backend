@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
+const fs = require('fs');
 const Replicate = require('replicate')
 const cors = require('cors')
 const Stripe = require('stripe')
