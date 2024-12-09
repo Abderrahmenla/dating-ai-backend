@@ -2,17 +2,28 @@ require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
 const Replicate = require('replicate')
-const https = require('https')
-const fs = require('fs')
 const cors = require('cors')
 const Stripe = require('stripe')
+const admin = require('firebase-admin')
+const http = require('http')
 const usersSubscriptions = {}
 const app = express()
 const httpPort = 3001
 const httpsPort = 3000
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
+
 app.use(cors())
 app.use(bodyParser.json())
+const webhookBaseURL =
+  process.env.NODE_ENV === 'development'
+    ? 'http://localhost:3000'
+    : 'https://34.45.36.169'
+const port = 3000
+const serviceAccount = require('./serviceAccountKey.json')
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+})
+const db = admin.firestore()
 
 const replicate = new Replicate({
   auth: process.env.REPLICATE_API_TOKEN,
@@ -27,16 +38,39 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 app.post('/train', async (req, res) => {
   try {
-    const { options } = req.body
-    console.log('hello')
+    const { gender, options } = req.body
+
+    if (!gender) {
+      return res
+        .status(400)
+        .json({ error: 'Gender (e.g., "male" or "female") is required.' })
+    }
+
     const training = await replicate.trainings.create(
       'ostris',
       'flux-dev-lora-trainer',
       'e440909d3512c31646ee2e0c7d6f6f4923224863a6a10c494606e79fb5844497',
-      options
+      {
+        ...options,
+        webhook: `${webhookBaseURL}/training-status/${training.id}`,
+        webhook_events_filter: ['completed', 'failed'],
+      }
     )
 
-    res.status(200).json(training)
+    console.log('Training initiated:', training)
+
+    await db.collection('training_models').doc(training.id).set({
+      trainingId: training.id,
+      gender,
+      status: 'pending',
+      version: null,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    })
+
+    res.status(200).json({
+      message: 'Training initiated successfully.',
+      trainingId: training.id,
+    })
   } catch (error) {
     console.error('Error initiating training:', error.message)
     res
@@ -158,7 +192,102 @@ app.get('/verify-subscription', async (req, res) => {
     })
   }
 })
-const http = require('http')
+
+app.post('/training-status/:trainingId', async (req, res) => {
+  try {
+    const { trainingId } = req.params
+    const { status, version } = req.body
+
+    console.log(`Training status for training ID ${trainingId}:`, status)
+
+    const updateData = {
+      status,
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    }
+
+    if (status === 'succeeded') {
+      updateData.version = version
+    }
+
+    await db.collection('training_models').doc(trainingId).update(updateData)
+    console.log(
+      `Training status updated in Firestore for training ID ${trainingId}.`
+    )
+
+    res.status(200).send('Webhook processed successfully.')
+  } catch (error) {
+    console.error('Error in training-status webhook:', error.message)
+    res.status(500).send('Error processing webhook.')
+  }
+})
+
+app.post('/generate/:trainingId', async (req, res) => {
+  try {
+    const { trainingId } = req.params
+
+    const trainingDoc = await db
+      .collection('training_models')
+      .doc(trainingId)
+      .get()
+
+    if (!trainingDoc.exists) {
+      return res
+        .status(404)
+        .json({ error: `No training model found for ID: ${trainingId}` })
+    }
+
+    const trainingData = trainingDoc.data()
+
+    if (trainingData.status === 'pending') {
+      return res
+        .status(403)
+        .json({ error: 'Model training is still in progress. Please wait.' })
+    }
+
+    if (trainingData.status === 'failed') {
+      return res
+        .status(403)
+        .json({ error: 'Model training failed. Unable to generate images.' })
+    }
+
+    if (trainingData.status !== 'succeeded') {
+      return res.status(403).json({
+        error: `Model training is not completed. Status: ${trainingData.status}`,
+      })
+    }
+
+    const gender = trainingData.gender
+    const promptsDoc = await db.collection('image_prompts').doc(gender).get()
+
+    if (!promptsDoc.exists) {
+      return res
+        .status(404)
+        .json({ error: `No prompts found for gender: ${gender}` })
+    }
+
+    const prompts = promptsDoc.data()
+    const generatedImages = {}
+
+    for (const [key, prompt] of Object.entries(prompts)) {
+      console.log(`Generating image for prompt: ${prompt}`)
+
+      const output = await replicate.run('ostris/flux-dev-lora-trainer', {
+        version: trainingData.version,
+        input: { prompt },
+      })
+
+      generatedImages[key] = output
+    }
+
+    res.status(200).json({ generatedImages })
+  } catch (error) {
+    console.error('Error generating images:', error.message)
+    res
+      .status(500)
+      .json({ error: 'Failed to generate images', details: error.message })
+  }
+})
+
 http
   .createServer((req, res) => {
     res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
