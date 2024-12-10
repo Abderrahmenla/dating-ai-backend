@@ -55,7 +55,7 @@ app.post('/train', async (req, res) => {
       {
         ...options,
         webhook: `${webhookBaseURL}/training-status/${userID}/${name}`,
-        webhook_events_filter: ['completed', 'failed'],
+        webhook_events_filter: ['completed', 'start', 'logs'],
       }
     )
 
