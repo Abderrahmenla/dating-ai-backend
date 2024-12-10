@@ -1,13 +1,13 @@
 require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
-const https = require('https')
-const fs = require('fs');
 const Replicate = require('replicate')
 const cors = require('cors')
 const Stripe = require('stripe')
 const admin = require('firebase-admin')
 const http = require('http')
+const https = require('https')
+const fs = require('fs')
 const usersSubscriptions = {}
 const app = express()
 const httpPort = 3001
@@ -40,7 +40,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 app.post('/train', async (req, res) => {
   try {
-    const { gender, options } = req.body
+    const { gender, name, userID, options } = req.body
 
     if (!gender) {
       return res
@@ -54,14 +54,16 @@ app.post('/train', async (req, res) => {
       'e440909d3512c31646ee2e0c7d6f6f4923224863a6a10c494606e79fb5844497',
       {
         ...options,
-        webhook: `${webhookBaseURL}/training-status/${training.id}`,
+        webhook: `${webhookBaseURL}/training-status/${userID}/${name}`,
         webhook_events_filter: ['completed', 'failed'],
       }
     )
 
     console.log('Training initiated:', training)
 
-    await db.collection('training_models').doc(training.id).set({
+    await db.collection('training_models').doc(`${userID}-${name}`).set({
+      name,
+      userID,
       trainingId: training.id,
       gender,
       status: 'pending',
@@ -195,12 +197,12 @@ app.get('/verify-subscription', async (req, res) => {
   }
 })
 
-app.post('/training-status/:trainingId', async (req, res) => {
+app.post('/training-status/:userID/:name', async (req, res) => {
   try {
-    const { trainingId } = req.params
+    const { userID, name } = req.params
     const { status, version } = req.body
 
-    console.log(`Training status for training ID ${trainingId}:`, status)
+    console.log(`Training status for User model ${userID}:`, status)
 
     const updateData = {
       status,
@@ -211,10 +213,11 @@ app.post('/training-status/:trainingId', async (req, res) => {
       updateData.version = version
     }
 
-    await db.collection('training_models').doc(trainingId).update(updateData)
-    console.log(
-      `Training status updated in Firestore for training ID ${trainingId}.`
-    )
+    await db
+      .collection('training_models')
+      .doc(`${userID}-${name}`)
+      .update(updateData)
+    console.log(`Training status updated in Firestore for Doc ID ${userID}.`)
 
     res.status(200).send('Webhook processed successfully.')
   } catch (error) {
