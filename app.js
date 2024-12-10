@@ -54,16 +54,16 @@ app.post('/train', async (req, res) => {
       'e440909d3512c31646ee2e0c7d6f6f4923224863a6a10c494606e79fb5844497',
       {
         ...options,
-        webhook: `${webhookBaseURL}/training-status/${userID}/${name}`,
+        webhook: `${webhookBaseURL}/training-status/${userId}/${name}`,
         webhook_events_filter: ['completed', 'start', 'logs'],
       }
     )
 
     console.log('Training initiated:', training)
 
-    await db.collection('training_models').doc(`${userID}-${name}`).set({
+    await db.collection('training_models').doc(`${userId}-${name}`).set({
       name,
-      userID,
+      userId,
       trainingId: training.id,
       gender,
       status: 'pending',
