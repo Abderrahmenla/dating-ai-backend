@@ -40,7 +40,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
 
 app.post('/train', async (req, res) => {
   try {
-    const { gender, name, userID, options } = req.body
+    const { gender, name, userId, options } = req.body
 
     if (!gender) {
       return res
@@ -121,7 +121,7 @@ app.post('/create-checkout-session', async (req, res) => {
       success_url: `${process.env.REACT_PUBLIC_BASE_URL}${redirectURL}?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${process.env.REACT_PUBLIC_BASE_URL}/cancel?session_id={CHECKOUT_SESSION_ID}`,
       metadata: {
-        userId, // Attach userId to metadata for webhook processing
+        userId,
       },
     })
 
