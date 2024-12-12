@@ -103,8 +103,8 @@ app.post('/train', async (req, res) => {
       'e440909d3512c31646ee2e0c7d6f6f4923224863a6a10c494606e79fb5844497',
       {
         ...options,
-        webhook: `${webhookBaseURL}/training-status/${userId}/${name}`,
-        webhook_events_filter: ['completed', 'start', 'logs'],
+        webhook: `${webhookBaseURL}/replicate-webhook?userId=${userId}&name=${name}`,
+        webhook_events_filter: ['completed', 'logs'],
       }
     )
 
@@ -246,12 +246,12 @@ app.get('/verify-subscription', async (req, res) => {
   }
 })
 
-app.post('/training-status/:userID/:name', async (req, res) => {
+app.post('/replicate-webhook', async (req, res) => {
   try {
-    const { userID, name } = req.params
+    const { userId, name } = req.query
     const { status, version } = req.body
 
-    console.log(`Training status for User model ${userID}:`, status)
+    console.log(`Training status for User model ${userId}:`, status)
 
     const updateData = {
       status,
@@ -262,14 +262,14 @@ app.post('/training-status/:userID/:name', async (req, res) => {
       updateData.version = version
     }
 
-    const trainingDocId = `${userID}-${name}`
+    const trainingDocId = `${userId}-${name}`
     await db.collection('training_models').doc(trainingDocId).update(updateData)
 
     console.log(
       `Training status updated in Firestore for Doc ID ${trainingDocId}.`
     )
 
-    const socketId = usersSockets[userID]
+    const socketId = usersSockets[userId]
     if (socketId) {
       io.to(socketId).emit('trainingStatus', {
         status,
@@ -339,14 +339,17 @@ app.post('/generate/:trainingId', async (req, res) => {
     for (const [key, prompt] of Object.entries(prompts)) {
       console.log(`Generating image for prompt: ${prompt}`)
 
-      const output = await replicate.run('ostris/flux-dev-lora-trainer', {
-        version: trainingData.version,
-        input: { prompt },
-      })
+      const output = await replicate.predictions.create(
+        'ostris/flux-dev-lora-trainer',
+        {
+          version: trainingData.version,
+          input: { prompt },
+        }
+      )
 
       generatedImages[key] = output
     }
-
+    console.log('result', generatedImages)
     res.status(200).json({ generatedImages })
   } catch (error) {
     console.error('Error generating images:', error.message)
