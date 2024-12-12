@@ -7,8 +7,10 @@ const Stripe = require('stripe')
 const admin = require('firebase-admin')
 const http = require('http')
 const https = require('https')
+const { Server } = require('socket.io')
 const fs = require('fs')
 const usersSubscriptions = {}
+const usersSockets = {}
 const app = express()
 const httpPort = 3001
 const httpsPort = 3000
@@ -20,7 +22,6 @@ const webhookBaseURL =
   process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000'
     : 'https://34.45.36.169'
-const port = 3000
 const serviceAccount = require('./serviceAccountKey.json')
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -36,6 +37,54 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
+})
+
+const httpServer = http
+  .createServer((req, res) => {
+    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
+    res.end()
+  })
+  .listen(httpPort, () => {
+    console.log(
+      `HTTP Server is running on http://localhost:${httpPort} and redirecting to HTTPS`
+    )
+  })
+
+const sslOptions = {
+  key: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.key'),
+  cert: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.crt'),
+}
+
+const httpsServer = https
+  .createServer(sslOptions, app)
+  .listen(httpsPort, () => {
+    console.log(`HTTPS Server is running on https://localhost:${httpsPort}`)
+  })
+
+const io = new Server(httpsServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+})
+
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id)
+
+  socket.on('register', (userId) => {
+    console.log(`User registered: ${userId}`)
+    usersSockets[userId] = socket.id
+  })
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id)
+    for (const [userId, socketId] of Object.entries(usersSockets)) {
+      if (socketId === socket.id) {
+        delete usersSockets[userId]
+        break
+      }
+    }
+  })
 })
 
 app.post('/train', async (req, res) => {
@@ -124,7 +173,7 @@ app.post('/create-checkout-session', async (req, res) => {
         userId,
       },
     })
-
+    console.log('checkout session had been screated', session.id, userId)
     res.status(200).json({
       status: 'pending',
       sessionId: session.id,
@@ -213,11 +262,25 @@ app.post('/training-status/:userID/:name', async (req, res) => {
       updateData.version = version
     }
 
-    await db
-      .collection('training_models')
-      .doc(`${userID}-${name}`)
-      .update(updateData)
-    console.log(`Training status updated in Firestore for Doc ID ${userID}.`)
+    const trainingDocId = `${userID}-${name}`
+    await db.collection('training_models').doc(trainingDocId).update(updateData)
+
+    console.log(
+      `Training status updated in Firestore for Doc ID ${trainingDocId}.`
+    )
+
+    const socketId = usersSockets[userID]
+    if (socketId) {
+      io.to(socketId).emit('trainingStatus', {
+        status,
+        modelName: name,
+        trainingId: trainingDocId,
+        message:
+          status === 'succeeded'
+            ? 'Your model training is complete!'
+            : 'There was an issue with your model training.',
+      })
+    }
 
     res.status(200).send('Webhook processed successfully.')
   } catch (error) {
@@ -291,24 +354,4 @@ app.post('/generate/:trainingId', async (req, res) => {
       .status(500)
       .json({ error: 'Failed to generate images', details: error.message })
   }
-})
-
-http
-  .createServer((req, res) => {
-    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
-    res.end()
-  })
-  .listen(httpPort, () => {
-    console.log(
-      `HTTP Server is running on http://localhost:${httpPort} and redirecting to HTTPS`
-    )
-  })
-
-const sslOptions = {
-  key: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.key'),
-  cert: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.crt'),
-}
-
-https.createServer(sslOptions, app).listen(httpsPort, () => {
-  console.log(`HTTPS Server is running on https://localhost:${httpsPort}`)
 })
