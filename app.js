@@ -46,7 +46,7 @@ const httpServer = http.createServer(app).listen(httpPort, () => {
   console.log(`HTTP Server is running on http://localhost:${httpPort}`);
 });
 
-const io = new Server(httpsServer, {
+const io = new Server(httpServer, {
   cors: {
     origin: '*',
     methods: ['GET', 'POST'],
