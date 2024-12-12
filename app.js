@@ -14,6 +14,13 @@ const app = express()
 const httpPort = 3000
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
+
+app.use(cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+}));
 app.use(bodyParser.json())
 const webhookBaseURL =
   process.env.NODE_ENV === 'development'
