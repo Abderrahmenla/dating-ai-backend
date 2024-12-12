@@ -6,14 +6,12 @@ const cors = require('cors')
 const Stripe = require('stripe')
 const admin = require('firebase-admin')
 const http = require('http')
-const https = require('https')
 const { Server } = require('socket.io')
 const fs = require('fs')
 const usersSubscriptions = {}
 const usersSockets = {}
 const app = express()
-const httpPort = 3001
-const httpsPort = 3000
+const httpPort = 3000
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 app.use(cors())
@@ -39,26 +37,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 })
 
-const httpServer = http
-  .createServer((req, res) => {
-    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
-    res.end()
-  })
-  .listen(httpPort, () => {
-    console.log(
-      `HTTP Server is running on http://localhost:${httpPort} and redirecting to HTTPS`
-    )
-  })
-
-const sslOptions = {
-  key: fs.readFileSync('./selfsigned.key'),
-  cert: fs.readFileSync('./selfsigned.crt'),
-};
-const httpsServer = https
-  .createServer(sslOptions, app)
-  .listen(httpsPort, () => {
-    console.log(`HTTPS Server is running on https://localhost:${httpsPort}`)
-  })
+const httpServer = http.createServer(app).listen(httpPort, () => {
+  console.log(`HTTP Server is running on http://localhost:${httpPort}`);
+});
 
 const io = new Server(httpsServer, {
   cors: {
