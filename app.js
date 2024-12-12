@@ -13,7 +13,7 @@ const usersSubscriptions = {}
 const usersSockets = {}
 const app = express()
 const httpPort = 3001
-const httpsPort = 3000
+const httpsPort = 443
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 app.use(cors())
@@ -51,10 +51,9 @@ const httpServer = http
   })
 
 const sslOptions = {
-  key: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.key'),
-  cert: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.crt'),
-}
-
+  key: fs.readFileSync('./selfsigned.key'),
+  cert: fs.readFileSync('./selfsigned.crt'),
+};
 const httpsServer = https
   .createServer(sslOptions, app)
   .listen(httpsPort, () => {
