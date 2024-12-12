@@ -21,7 +21,7 @@ app.use(bodyParser.json())
 const webhookBaseURL =
   process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000'
-    : 'http://34.45.36.169'
+    : 'https://34.45.36.169'
 const serviceAccount = require('./serviceAccountKey.json')
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
