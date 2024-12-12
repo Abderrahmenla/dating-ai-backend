@@ -43,7 +43,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 })
 
-const httpServer = http.createServer(app).listen(httpPort, () => {
+const httpServer = http.createServer(app).listen(httpPort, '0.0.0.0', () => {
   console.log(`HTTP Server is running on http://localhost:${httpPort}`);
 });
 
