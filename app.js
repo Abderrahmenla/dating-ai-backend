@@ -13,7 +13,7 @@ const usersSubscriptions = {}
 const usersSockets = {}
 const app = express()
 const httpPort = 3001
-const httpsPort = 443
+const httpsPort = 3000
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 app.use(cors())
