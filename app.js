@@ -20,7 +20,12 @@ const corsOptions = {
   allowedHeaders: ['Origin', 'Authorization', 'Accept', 'Content-Type', 'X-Requested-With'], 
   credentials: true, 
 };
-
+app.use((req, res, next) => {
+  if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
+    return res.redirect(`https://${req.headers.host}${req.url}`);
+  }
+  next();
+});
 app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); 
 app.use(bodyParser.json())
