@@ -15,11 +15,12 @@ const httpPort = 3000
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 const corsOptions = {
-  origin: '*',
+  origin: '*', 
   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
-  allowedHeaders: ['Origin', 'Authorization', 'Accept', 'Content-Type', 'X-Requested-With'],
-  credentials: true, // Required if you allow cookies or authentication headers
+  allowedHeaders: ['Origin', 'Authorization', 'Accept', 'Content-Type', 'X-Requested-With'], 
+  credentials: true, 
 };
+
 app.use(cors(corsOptions));
 app.use(bodyParser.json())
 const webhookBaseURL =
