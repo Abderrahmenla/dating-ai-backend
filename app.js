@@ -15,7 +15,7 @@ const httpPort = 3000
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 const corsOptions = {
-  origin: '*', // Replace '*' with a specific frontend URL in production, e.g., https://your-frontend.com
+  origin: '*',
   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
   allowedHeaders: ['Origin', 'Authorization', 'Accept', 'Content-Type', 'X-Requested-With'],
   credentials: true, // Required if you allow cookies or authentication headers
