@@ -72,6 +72,9 @@ io.on('connection', (socket) => {
     }
   })
 })
+app.get('/', (req, res) => {
+  res.send('Welcome to the Dating AI Backend!');
+});
 
 app.post('/train', async (req, res) => {
   try {
