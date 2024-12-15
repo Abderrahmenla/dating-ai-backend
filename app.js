@@ -14,28 +14,7 @@ const app = express()
 const httpPort = 3000
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    callback(null, true); // Allow all origins dynamically
-  },
-  methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
-  allowedHeaders: [
-    'Origin',
-    'Authorization',
-    'Accept',
-    'Content-Type',
-    'X-Requested-With',
-  ],
-  credentials: true,
-};
-app.use((req, res, next) => {
-  if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
-    return res.redirect(`https://${req.headers.host}${req.url}`);
-  }
-  next();
-});
-app.use(cors(corsOptions));
-app.options('*', cors(corsOptions)); 
+
 app.use(bodyParser.json())
 const webhookBaseURL =
   process.env.NODE_ENV === 'development'
@@ -62,12 +41,7 @@ const httpServer = http.createServer(app).listen(httpPort, '0.0.0.0', () => {
   console.log(`HTTP Server is running on http://localhost:${httpPort}`);
 });
 
-const io = new Server(httpServer, {
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-  },
-})
+const io = new Server(httpServer)
 
 io.on('connection', (socket) => {
   console.log('New client connected:', socket.id)
