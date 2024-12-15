@@ -15,10 +15,18 @@ const httpPort = 3000
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
 const corsOptions = {
-  origin: '*', 
+  origin: (origin, callback) => {
+    callback(null, true); // Allow all origins dynamically
+  },
   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
-  allowedHeaders: ['Origin', 'Authorization', 'Accept', 'Content-Type', 'X-Requested-With'], 
-  credentials: true, 
+  allowedHeaders: [
+    'Origin',
+    'Authorization',
+    'Accept',
+    'Content-Type',
+    'X-Requested-With',
+  ],
+  credentials: true,
 };
 app.use((req, res, next) => {
   if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
