@@ -86,7 +86,7 @@ app.get('/', (req, res) => {
 app.post('/train', async (req, res) => {
   try {
     const { gender, name, userId, options } = req.body
-
+  console.log("train endpoint")
     if (!gender) {
       return res
         .status(400)
