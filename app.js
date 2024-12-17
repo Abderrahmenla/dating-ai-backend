@@ -8,6 +8,7 @@ const fs = require('fs')
 const http = require('http')
 const https = require('https')
 const { Server } = require('socket.io')
+const cors = require('cors')
 
 const app = express()
 const usersSubscriptions = {}
@@ -16,7 +17,21 @@ const httpPort = 3001
 const httpsPort = 3000
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
+const corsOptions = {
+  origin: '*',
+  methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
+  allowedHeaders: [
+    'Origin',
+    'Authorization',
+    'Accept',
+    'Content-Type',
+    'X-Requested-With',
+  ],
+  credentials: true,
+}
 
+app.use(cors(corsOptions))
+app.options('*', cors(corsOptions))
 app.use(bodyParser.json())
 
 const webhookBaseURL =
