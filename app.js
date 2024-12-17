@@ -2,28 +2,33 @@ require('dotenv').config()
 const express = require('express')
 const bodyParser = require('body-parser')
 const Replicate = require('replicate')
-const cors = require('cors')
 const Stripe = require('stripe')
 const admin = require('firebase-admin')
-const http = require('http')
-const { Server } = require('socket.io')
 const fs = require('fs')
+const http = require('http')
+const https = require('https')
+const { Server } = require('socket.io')
+
+const app = express()
 const usersSubscriptions = {}
 const usersSockets = {}
-const app = express()
-const httpPort = 3000
+const httpPort = 3001
+const httpsPort = 3000
+
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 
-
 app.use(bodyParser.json())
+
 const webhookBaseURL =
   process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000'
     : 'https://34.45.36.169'
+
 const serviceAccount = require('./serviceAccountKey.json')
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 })
+
 const db = admin.firestore()
 
 const replicate = new Replicate({
@@ -33,42 +38,19 @@ const replicate = new Replicate({
 if (!process.env.STRIPE_SECRET_KEY) {
   throw new Error('Missing STRIPE_SECRET_KEY environment variable')
 }
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
   apiVersion: '2023-10-16',
 })
 
-const httpServer = http.createServer(app).listen(httpPort, '0.0.0.0', () => {
-  console.log(`HTTP Server is running on http://localhost:${httpPort}`);
-});
-
-const io = new Server(httpServer)
-
-io.on('connection', (socket) => {
-  console.log('New client connected:', socket.id)
-
-  socket.on('register', (userId) => {
-    console.log(`User registered: ${userId}`)
-    usersSockets[userId] = socket.id
-  })
-
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id)
-    for (const [userId, socketId] of Object.entries(usersSockets)) {
-      if (socketId === socket.id) {
-        delete usersSockets[userId]
-        break
-      }
-    }
-  })
-})
 app.get('/', (req, res) => {
-  res.send('Welcome to the Dating AI Backend!');
-});
+  res.send('Welcome to the Dating AI Backend!')
+})
 
 app.post('/train', async (req, res) => {
   try {
     const { gender, name, userId, options } = req.body
-  console.log("train endpoint")
+    console.log('train endpoint')
     if (!gender) {
       return res
         .status(400)
@@ -335,4 +317,51 @@ app.post('/generate/:trainingId', async (req, res) => {
       .status(500)
       .json({ error: 'Failed to generate images', details: error.message })
   }
+})
+
+const httpServer = http
+  .createServer((req, res) => {
+    res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
+    res.end()
+  })
+  .listen(httpPort, () => {
+    console.log(
+      `HTTP Server is running on http://localhost:${httpPort} and redirecting to HTTPS`
+    )
+  })
+
+const sslOptions = {
+  key: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.key'),
+  cert: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.crt'),
+}
+const httpsServer = https
+  .createServer(sslOptions, app)
+  .listen(httpsPort, () => {
+    console.log(`HTTPS Server is running on https://localhost:${httpsPort}`)
+  })
+
+const io = new Server(httpsServer, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+  },
+})
+
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id)
+
+  socket.on('register', (userId) => {
+    console.log(`User registered: ${userId}`)
+    usersSockets[userId] = socket.id
+  })
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id)
+    for (const [userId, socketId] of Object.entries(usersSockets)) {
+      if (socketId === socket.id) {
+        delete usersSockets[userId]
+        break
+      }
+    }
+  })
 })
