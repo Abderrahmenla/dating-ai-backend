@@ -29,7 +29,19 @@ const corsOptions = {
   ],
   credentials: true, // Allow credentials like cookies, authentication headers, etc.
 };
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*'); // Allow frontend domain or fallback to '*'
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, Authorization, Accept, Content-Type, X-Requested-With'
+  );
 
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end(); // Handle preflight requests
+  }
+  next();
+});
 app.use(cors(corsOptions))
 app.use(bodyParser.json())
 
