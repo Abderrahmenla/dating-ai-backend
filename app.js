@@ -18,10 +18,17 @@ const httpsPort = 3000
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 const corsOptions = {
-  origin: '*',
+  origin: process.env.FRONTEND_URL || 'https://your-frontend-domain.com', // Replace with your frontend domain
   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
-  credentials: true,
-}
+  allowedHeaders: [
+    'Origin',
+    'Authorization',
+    'Accept',
+    'Content-Type',
+    'X-Requested-With',
+  ],
+  credentials: true, // Allow credentials like cookies, authentication headers, etc.
+};
 
 app.use(cors(corsOptions))
 app.use(bodyParser.json())
