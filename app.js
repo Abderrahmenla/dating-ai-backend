@@ -18,7 +18,7 @@ const httpsPort = 3000
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'https://your-frontend-domain.com', // Replace with your frontend domain
+  origin: '*', 
   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
   allowedHeaders: [
     'Origin',
@@ -27,10 +27,10 @@ const corsOptions = {
     'Content-Type',
     'X-Requested-With',
   ],
-  credentials: true, // Allow credentials like cookies, authentication headers, etc.
+  credentials: true,
 };
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', process.env.FRONTEND_URL || '*'); // Allow frontend domain or fallback to '*'
+  res.header('Access-Control-Allow-Origin', '*'); 
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.header(
     'Access-Control-Allow-Headers',
@@ -357,8 +357,8 @@ const httpServer = http
   })
 
 const sslOptions = {
-  key: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.key'),
-  cert: fs.readFileSync('/etc/ssl/selfsigned/selfsigned.crt'),
+    key: fs.readFileSync('/etc/letsencrypt/live/pictureresqueai.com/privkey.pem'),
+    cert: fs.readFileSync('/etc/letsencrypt/live/pictureresqueai.com/fullchain.pem')
 }
 const httpsServer = https
   .createServer(sslOptions, app)
