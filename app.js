@@ -357,8 +357,8 @@ const httpServer = http
   })
 
 const sslOptions = {
-    key: fs.readFileSync('/etc/letsencrypt/live/pictureresqueai.com/privkey.pem'),
-    cert: fs.readFileSync('/etc/letsencrypt/live/pictureresqueai.com/fullchain.pem')
+     key: fs.readFileSync('./ssl/privkey.pem'), 
+    cert: fs.readFileSync('./ssl/fullchain.pem')
 }
 const httpsServer = https
   .createServer(sslOptions, app)
