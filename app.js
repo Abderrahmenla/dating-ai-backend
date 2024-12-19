@@ -14,7 +14,7 @@ const app = express()
 const usersSubscriptions = {}
 const usersSockets = {}
 const httpPort = 3001
-const httpsPort = 3000
+const httpsPort = 443
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 const corsOptions = {
