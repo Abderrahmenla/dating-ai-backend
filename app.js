@@ -48,7 +48,7 @@ app.use(bodyParser.json())
 const webhookBaseURL =
   process.env.NODE_ENV === 'development'
     ? 'http://localhost:3000'
-    : 'https://34.45.36.169'
+    : 'https://pictureresqueai.com'
 
 const serviceAccount = require('./serviceAccountKey.json')
 admin.initializeApp({
