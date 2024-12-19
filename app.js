@@ -13,8 +13,8 @@ const cors = require('cors')
 const app = express()
 const usersSubscriptions = {}
 const usersSockets = {}
-const httpPort = 80
-const httpsPort = 443
+const httpPort = 3001
+const httpsPort = 3000
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 const corsOptions = {
