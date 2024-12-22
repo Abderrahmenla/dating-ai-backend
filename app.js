@@ -323,7 +323,7 @@ app.post('/generate/:trainingId', async (req, res) => {
     const generatedImages = {}
 
     for (const [key, prompt] of Object.entries(prompts)) {
-      console.log(`Generating image for prompt: ${prompt}`)
+      console.log(`Generating image for prompt: ${trainingData.version}`)
 
       const output = await replicate.predictions.create(
         'ostris/flux-dev-lora-trainer',
