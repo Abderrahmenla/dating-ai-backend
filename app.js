@@ -344,7 +344,7 @@ app.post('/generate/:trainingId', async (req, res) => {
           .doc(trainingId)
           .collection('generatedImages')
           .add({
-            imageUrl,
+            data: { imageUrl },
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           })
 
