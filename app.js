@@ -337,7 +337,8 @@ app.post('/generate/:trainingId', async (req, res) => {
         }
       )
 
-      const imageUrl = output?.[0] // Assuming the output contains the image URL
+      const imageUrl = output?.[0]
+      console.log(imageUrl, typeof imageUrl) // Assuming the output contains the image URL
       if (imageUrl) {
         console.log(`Generated image URL: ${imageUrl}`)
 
