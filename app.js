@@ -334,12 +334,15 @@ app.post('/generate/:trainingId', async (req, res) => {
         }
       )
 
-      const imageStream = output?.[0]
+      // Process the ReadableStream using native fetch
+      const imageStream = output?.[0] // Assuming first result contains the image stream
       if (imageStream) {
-        const response = await fetch(imageStream)
-        const buffer = await response.buffer()
-        const base64Image = `data:image/png;base64,${buffer.toString('base64')}`
-        generatedImages[key] = base64Image
+        const response = await fetch(imageStream) // Use native fetch
+        const arrayBuffer = await response.arrayBuffer() // Use arrayBuffer instead of buffer
+        const base64Image = `data:image/png;base64,${Buffer.from(
+          arrayBuffer
+        ).toString('base64')}` // Convert to Base64
+        generatedImages[key] = base64Image // Store the Base64 image
       } else {
         console.error(`No output for key: ${key}`)
       }
