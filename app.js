@@ -335,7 +335,7 @@ app.post('/generate/:trainingId', async (req, res) => {
       )
 
       const imageUrl = output?.[0] // Assuming the output contains the image URL
-      if (imageUrl && typeof imageUrl === 'string') {
+      if (imageUrl) {
         console.log(`Generated image URL: ${imageUrl}`)
 
         // Save the generated image URL to the subcollection
