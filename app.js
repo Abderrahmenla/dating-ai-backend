@@ -51,6 +51,7 @@ const webhookBaseURL =
     : 'https://pictureresqueai.com'
 
 const serviceAccount = require('./serviceAccountKey.json')
+const { version } = require('os')
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 })
@@ -325,20 +326,18 @@ app.post('/generate/:trainingId', async (req, res) => {
     for (const [key, prompt] of Object.entries(prompts)) {
       console.log(`Generating image for prompt: ${trainingData.version}`)
 
-      const output = await replicate.predictions.create(
-        'ostris/flux-dev-lora-trainer',
-        {
-          model: 'ostris/flux-dev-lora-trainer',
-          input: {
-            prompt,
-            negative_prompt: 'blurry, low quality, distorted, deformed',
-            num_outputs: 2,
-            guidance_scale: 7.5,
-            num_inference_steps: 50,
-            scheduler: 'DPMSolverMultistep',
-          },
-        }
-      )
+      const output = await replicate.run({
+        model: 'ostris/flux-dev-lora-trainer',
+        version: trainingData.version,
+        input: {
+          prompt,
+          // negative_prompt: 'blurry, low quality, distorted, deformed',
+          // num_outputs: 2,
+          // guidance_scale: 7.5,
+          // num_inference_steps: 50,
+          // scheduler: 'DPMSolverMultistep',
+        },
+      })
 
       generatedImages[key] = output
     }
