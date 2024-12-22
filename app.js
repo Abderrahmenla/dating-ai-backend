@@ -332,7 +332,7 @@ app.post('/generate/:trainingId', async (req, res) => {
           input: {
             prompt,
             negative_prompt: 'blurry, low quality, distorted, deformed',
-            num_outputs: numImages,
+            num_outputs: 2,
             guidance_scale: 7.5,
             num_inference_steps: 50,
             scheduler: 'DPMSolverMultistep',
