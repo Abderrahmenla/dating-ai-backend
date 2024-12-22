@@ -338,17 +338,20 @@ app.post('/generate/:trainingId', async (req, res) => {
       )
 
       const imageUrl = output?.[0]
-      console.log(imageUrl, typeof imageUrl) // Assuming the output contains the image URL
       if (imageUrl) {
         console.log(`Generated image URL: ${imageUrl}`)
+        const image = await fetch(imageUrl)
+        const arrayBuffer = await image.arrayBuffer()
+        const base64Image = `data:image/png;base64,${Buffer.from(
+          arrayBuffer
+        ).toString('base64')}`
 
-        // Save the generated image URL to the subcollection
         await db
           .collection('training_models')
           .doc(trainingId)
           .collection('generatedImages')
           .add({
-            imageUrl, // Ensure it's a plain string
+            imageUrl: admin.firestore.FieldValue.arrayUnion(base64Image),
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           })
 
