@@ -9,7 +9,6 @@ const http = require('http')
 const https = require('https')
 const { Server } = require('socket.io')
 const cors = require('cors')
-
 const app = express()
 const usersSubscriptions = {}
 const usersSockets = {}
@@ -335,10 +334,18 @@ app.post('/generate/:trainingId', async (req, res) => {
         }
       )
 
-      generatedImages[key] = output
+      const imageStream = output?.[0]
+      if (imageStream) {
+        const response = await fetch(imageStream)
+        const buffer = await response.buffer()
+        const base64Image = `data:image/png;base64,${buffer.toString('base64')}`
+        generatedImages[key] = base64Image
+      } else {
+        console.error(`No output for key: ${key}`)
+      }
     }
-    console.log('result', generatedImages)
-    res.status(200).json({ generatedImages })
+
+    res.status(200).json({ generatedImages: Object.values(generatedImages) })
   } catch (error) {
     console.error('Error generating images:', error.message)
     res
