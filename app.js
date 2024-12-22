@@ -326,18 +326,14 @@ app.post('/generate/:trainingId', async (req, res) => {
     for (const [key, prompt] of Object.entries(prompts)) {
       console.log(`Generating image for prompt: ${trainingData.version}`)
 
-      const output = await replicate.run({
-        model: 'ostris/flux-dev-lora-trainer',
-        version: trainingData.version,
-        input: {
-          prompt,
-          // negative_prompt: 'blurry, low quality, distorted, deformed',
-          // num_outputs: 2,
-          // guidance_scale: 7.5,
-          // num_inference_steps: 50,
-          // scheduler: 'DPMSolverMultistep',
-        },
-      })
+      const output = await replicate.run(
+        'thjentzsch/test:a698b148bc6626b433bff1060a8b0b7b4ecd071cf2456851a3041161dc71c565',
+        {
+          input: {
+            prompt,
+          },
+        }
+      )
 
       generatedImages[key] = output
     }
