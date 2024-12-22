@@ -335,7 +335,7 @@ app.post('/generate/:trainingId', async (req, res) => {
       )
 
       const imageUrl = output?.[0] // Assuming the output contains the image URL
-      if (imageUrl) {
+      if (imageUrl && typeof imageUrl === 'string') {
         console.log(`Generated image URL: ${imageUrl}`)
 
         // Save the generated image URL to the subcollection
@@ -344,7 +344,7 @@ app.post('/generate/:trainingId', async (req, res) => {
           .doc(trainingId)
           .collection('generatedImages')
           .add({
-            data: { imageUrl },
+            imageUrl, // Ensure it's a plain string
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           })
 
