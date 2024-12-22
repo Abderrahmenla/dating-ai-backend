@@ -279,6 +279,7 @@ app.post('/generate/:trainingId', async (req, res) => {
   try {
     const { trainingId } = req.params
 
+    // Fetch the training model document
     const trainingDoc = await db
       .collection('training_models')
       .doc(trainingId)
@@ -322,7 +323,7 @@ app.post('/generate/:trainingId', async (req, res) => {
     const prompts = promptsDoc.data()
 
     for (const [key, prompt] of Object.entries(prompts)) {
-      console.log(`Generating image for prompt: ${trainingData.version}`)
+      console.log(`Generating image for prompt: ${prompt}`)
 
       const output = await replicate.run(
         'thjentzsch/test:a698b148bc6626b433bff1060a8b0b7b4ecd071cf2456851a3041161dc71c565',
@@ -333,26 +334,29 @@ app.post('/generate/:trainingId', async (req, res) => {
         }
       )
 
-      // Process the ReadableStream using native fetch
-      const imageStream = output?.[0] // Assuming first result contains the image stream
-      if (imageStream) {
-        const response = await fetch(imageStream) // Use native fetch
-        const arrayBuffer = await response.arrayBuffer() // Use arrayBuffer instead of buffer
-        const base64Image = `data:image/png;base64,${Buffer.from(
-          arrayBuffer
-        ).toString('base64')}`
+      const imageUrl = output?.[0] // Assuming the output contains the image URL
+      if (imageUrl) {
+        console.log(`Generated image URL: ${imageUrl}`)
+
+        // Save the generated image URL to the subcollection
         await db
           .collection('training_models')
           .doc(trainingId)
-          .update({
-            generatedImages: admin.firestore.FieldValue.arrayUnion(base64Image),
+          .collection('generatedImages')
+          .add({
+            imageUrl,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
           })
+
+        console.log(`Image URL added to Firestore: ${imageUrl}`)
       } else {
         console.error(`No output for key: ${key}`)
       }
     }
 
-    res.status(200).json({ message: 'success' })
+    res
+      .status(200)
+      .json({ message: 'Images generated and added to Firestore.' })
   } catch (error) {
     console.error('Error generating images:', error.message)
     res
