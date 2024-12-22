@@ -18,7 +18,7 @@ const httpsPort = 3000
 
 const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET
 const corsOptions = {
-  origin: '*', 
+  origin: '*',
   methods: ['GET', 'POST', 'OPTIONS', 'PUT', 'DELETE'],
   allowedHeaders: [
     'Origin',
@@ -28,20 +28,20 @@ const corsOptions = {
     'X-Requested-With',
   ],
   credentials: true,
-};
+}
 app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*'); 
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Origin', '*')
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
   res.header(
     'Access-Control-Allow-Headers',
     'Origin, Authorization, Accept, Content-Type, X-Requested-With'
-  );
+  )
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end(); // Handle preflight requests
+    return res.status(200).end() // Handle preflight requests
   }
-  next();
-});
+  next()
+})
 app.use(cors(corsOptions))
 app.use(bodyParser.json())
 
@@ -90,7 +90,7 @@ app.post('/train', async (req, res) => {
       {
         ...options,
         webhook: `${webhookBaseURL}/replicate-webhook?userId=${userId}&name=${name}`,
-        webhook_events_filter: ['completed', 'logs'],
+        webhook_events_filter: ['completed'],
       }
     )
 
@@ -329,7 +329,14 @@ app.post('/generate/:trainingId', async (req, res) => {
         'ostris/flux-dev-lora-trainer',
         {
           version: trainingData.version,
-          input: { prompt },
+          input: {
+            prompt,
+            negative_prompt: 'blurry, low quality, distorted, deformed',
+            num_outputs: numImages,
+            guidance_scale: 7.5,
+            num_inference_steps: 50,
+            scheduler: 'DPMSolverMultistep',
+          },
         }
       )
 
@@ -357,8 +364,8 @@ const httpServer = http
   })
 
 const sslOptions = {
-     key: fs.readFileSync('./ssl/privkey.pem'), 
-    cert: fs.readFileSync('./ssl/fullchain.pem')
+  key: fs.readFileSync('./ssl/privkey.pem'),
+  cert: fs.readFileSync('./ssl/fullchain.pem'),
 }
 const httpsServer = https
   .createServer(sslOptions, app)
