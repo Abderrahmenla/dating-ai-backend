@@ -4,8 +4,6 @@ const bodyParser = require('body-parser')
 const Replicate = require('replicate')
 const Stripe = require('stripe')
 const admin = require('firebase-admin')
-const { getStorage } = require('firebase-admin/storage')
-const { FieldValue } = require('firebase-admin/firestore')
 const fs = require('fs')
 const http = require('http')
 const https = require('https')
@@ -281,7 +279,6 @@ app.post('/generate/:trainingId', async (req, res) => {
   try {
     const { trainingId } = req.params
 
-    // Fetch training model document
     const trainingDoc = await db
       .collection('training_models')
       .doc(trainingId)
@@ -323,12 +320,10 @@ app.post('/generate/:trainingId', async (req, res) => {
     }
 
     const prompts = promptsDoc.data()
-    const storage = getStorage()
-    const bucket = storage.bucket() // Use default Firebase bucket
-    const generatedImages = []
+    const generatedImages = {}
 
     for (const [key, prompt] of Object.entries(prompts)) {
-      console.log(`Generating image for prompt: ${prompt}`)
+      console.log(`Generating image for prompt: ${trainingData.version}`)
 
       const output = await replicate.run(
         'thjentzsch/test:a698b148bc6626b433bff1060a8b0b7b4ecd071cf2456851a3041161dc71c565',
@@ -339,40 +334,26 @@ app.post('/generate/:trainingId', async (req, res) => {
         }
       )
 
+      // Process the ReadableStream using native fetch
       const imageStream = output?.[0] // Assuming first result contains the image stream
       if (imageStream) {
         const response = await fetch(imageStream) // Use native fetch
-        const arrayBuffer = await response.arrayBuffer() // Read image as array buffer
-        const imageBuffer = Buffer.from(arrayBuffer) // Convert to Node.js Buffer
-        const filePath = `users/${trainingData.userId}/analyses/${trainingId}/image-${key}.png`
-        const file = bucket.file(filePath)
-
-        // Upload the image to Firebase Storage
-        await file.save(imageBuffer, {
-          metadata: { contentType: 'image/png' },
-        })
-
-        // Get the public URL for the image
-        const [imageUrl] = await file.getSignedUrl({
-          action: 'read',
-          expires: '03-01-2500', // Set an expiration date
-        })
-
-        generatedImages.push(imageUrl) // Store the URL
+        const arrayBuffer = await response.arrayBuffer() // Use arrayBuffer instead of buffer
+        const base64Image = `data:image/png;base64,${Buffer.from(
+          arrayBuffer
+        ).toString('base64')}`
+        await db
+          .collection('training_models')
+          .doc(trainingId)
+          .update({
+            generatedImages: FieldValue.arrayUnion(base64Image),
+          })
       } else {
         console.error(`No output for key: ${key}`)
       }
     }
 
-    // Update Firestore document with the generated image URLs
-    await db
-      .collection('training_models')
-      .doc(trainingId)
-      .update({
-        generatedImages: FieldValue.arrayUnion(...generatedImages),
-      })
-
-    res.status(200).json({ generatedImages })
+    res.status(200).json({ message: 'success' })
   } catch (error) {
     console.error('Error generating images:', error.message)
     res
@@ -380,6 +361,7 @@ app.post('/generate/:trainingId', async (req, res) => {
       .json({ error: 'Failed to generate images', details: error.message })
   }
 })
+
 const httpServer = http
   .createServer((req, res) => {
     res.writeHead(301, { Location: `https://${req.headers.host}${req.url}` })
