@@ -328,6 +328,7 @@ app.post('/generate/:trainingId', async (req, res) => {
       const output = await replicate.predictions.create(
         'ostris/flux-dev-lora-trainer',
         {
+          model: 'ostris/flux-dev-lora-trainer',
           input: {
             prompt,
             negative_prompt: 'blurry, low quality, distorted, deformed',
