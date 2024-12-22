@@ -320,7 +320,6 @@ app.post('/generate/:trainingId', async (req, res) => {
     }
 
     const prompts = promptsDoc.data()
-    const generatedImages = {}
 
     for (const [key, prompt] of Object.entries(prompts)) {
       console.log(`Generating image for prompt: ${trainingData.version}`)
@@ -346,7 +345,7 @@ app.post('/generate/:trainingId', async (req, res) => {
           .collection('training_models')
           .doc(trainingId)
           .update({
-            generatedImages: FieldValue.arrayUnion(base64Image),
+            generatedImages: admin.firestore.FieldValue.arrayUnion(base64Image),
           })
       } else {
         console.error(`No output for key: ${key}`)
