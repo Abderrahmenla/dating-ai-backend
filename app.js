@@ -323,6 +323,9 @@ app.post('/generate/:trainingId', async (req, res) => {
     const prompts = promptsDoc.data()
 
     for (const [key, prompt] of Object.entries(prompts)) {
+      if (key > 2) {
+        break
+      }
       console.log(`Generating image for prompt: ${prompt}`)
 
       const output = await replicate.run(
