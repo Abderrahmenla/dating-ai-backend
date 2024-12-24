@@ -320,7 +320,8 @@ app.post('/generate/:trainingId', async (req, res) => {
     }
 
     const prompts = promptsDoc.data()
-
+    const modelVersions = await replicate.versions.list('thjentzsch/test')
+    console.log('these are the versions', modelVersions)
     for (const [key, prompt] of Object.entries(prompts)) {
       if (key > 2) {
         break
