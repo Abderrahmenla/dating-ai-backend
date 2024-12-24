@@ -50,7 +50,6 @@ const webhookBaseURL =
     : 'https://pictureresqueai.com'
 
 const serviceAccount = require('./serviceAccountKey.json')
-const { version } = require('os')
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 })
@@ -236,7 +235,7 @@ app.post('/replicate-webhook', async (req, res) => {
   try {
     const { userId, name } = req.query
     const { status, version } = req.body
-
+    console.log(req.body)
     console.log(`Training status for User model ${userId}:`, status)
 
     const updateData = {
@@ -355,7 +354,7 @@ app.post('/generate/:trainingId', async (req, res) => {
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
           })
 
-        console.log(`Image URL added to Firestore: ${imageUrl}`)
+        console.log(`Image URL added to Firestore: ${base64Image}`)
       } else {
         console.error(`No output for key: ${key}`)
       }
